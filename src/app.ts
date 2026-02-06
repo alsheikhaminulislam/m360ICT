@@ -13,9 +13,36 @@ dotenv.config();
 
 const app = express();
 
+// CORS Configuration
+// Get allowed origins from environment variable or allow all in development
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || '*';
+const allowAllOrigins = allowedOriginsEnv.trim() === '*';
+
+const corsOptions: cors.CorsOptions = {
+    origin: allowAllOrigins
+        ? true // Allow all origins when '*' is specified
+        : (origin, callback) => {
+            // Allow requests with no origin (like mobile apps, Postman, or same-origin)
+            if (!origin) return callback(null, true);
+
+            const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim());
+
+            if (allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+    credentials: true, // Allow cookies and authorization headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600 // Cache preflight requests for 10 minutes
+};
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(helmet());
 app.use(morgan("dev"));
 
